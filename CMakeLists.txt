@@ -96,12 +96,15 @@ target_link_libraries(${PROJECT_NAME}
 pluginlib_export_plugin_description_file(hardware_interface feetech_ros2_control_plugin_description.xml)
 
 install(
-  TARGETS demo serial_port communication_protocol ${PROJECT_NAME}
+  TARGETS serial_port communication_protocol ${PROJECT_NAME}
   EXPORT ${PROJECT_NAME}Targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+install(
+  TARGETS demo
+  RUNTIME DESTINATION lib/${PROJECT_NAME})
 install(
   DIRECTORY include/
   DESTINATION include/${PROJECT_NAME}
