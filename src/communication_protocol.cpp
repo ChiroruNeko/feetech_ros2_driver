@@ -1,4 +1,4 @@
-#include <feetech_hardware_interface/SMS_STS.h>
+#include <feetech_hardware_interface/HLS.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
@@ -85,29 +85,29 @@ Result CommunicationProtocol::write_position(const uint8_t id, int position, int
   std::array<uint8_t, 7> buffer{};
   buffer[0] = acceleration;
   to_sts(&buffer[1], &buffer[2], encode_signed_value(position));
-  to_sts(&buffer[3], &buffer[4], 0);
+  to_sts(&buffer[3], &buffer[4], 0);  // Set positive value if you want to move.
   to_sts(&buffer[5], &buffer[6], encode_signed_value(speed));
-  return write(id, SMS_STS_ACC, buffer);
+  return write(id, HLS_ACC, buffer);
 }
 
 Expected<int> CommunicationProtocol::read_position(const uint8_t id) {
-  return read_word(id, SMS_STS_PRESENT_POSITION_L).and_then([](auto position) -> Expected<int> {
+  return read_word(id, HLS_PRESENT_POSITION_L).and_then([](auto position) -> Expected<int> {
     return encode_signed_value(position);
   });
 }
 
 Expected<int> CommunicationProtocol::read_speed(const uint8_t id) {
-  return read_word(id, SMS_STS_PRESENT_SPEED_L).and_then([](auto speed) -> Expected<int> {
+  return read_word(id, HLS_PRESENT_SPEED_L).and_then([](auto speed) -> Expected<int> {
     return encode_signed_value(speed);
   });
 }
 
 Result CommunicationProtocol::set_torque(const uint8_t id, const bool enable) {
-  return write(id, SMS_STS_TORQUE_ENABLE, std::experimental::make_array(static_cast<uint8_t>(enable ? 1 : 0)));
+  return write(id, HLS_TORQUE_ENABLE, std::experimental::make_array(static_cast<uint8_t>(enable ? 1 : 0)));
 }
 
 Result CommunicationProtocol::calbration_offset(const uint8_t id) {
-  return write(id, SMS_STS_TORQUE_ENABLE, std::experimental::make_array(uint8_t{128}));
+  return write(id, HLS_TORQUE_ENABLE, std::experimental::make_array(uint8_t{128}));
 }
 
 Result CommunicationProtocol::set_maximum_angle_limit(const uint8_t id, const int angle) {
@@ -119,7 +119,7 @@ Result CommunicationProtocol::set_maximum_angle_limit(const uint8_t id, const in
   } else {
     to_sts(buf.data(), &buf[1], angle);
   }
-  return write(id, SMS_STS_MAX_ANGLE_LIMIT_L, buf);
+  return write(id, HLS_MAX_ANGLE_LIMIT_L, buf);
 }
 
 Result CommunicationProtocol::set_minimum_angle_limit(const uint8_t id, const int angle) {
@@ -131,20 +131,20 @@ Result CommunicationProtocol::set_minimum_angle_limit(const uint8_t id, const in
   } else {
     to_sts(buf.data(), &buf[1], angle);
   }
-  return write(id, SMS_STS_MIN_ANGLE_LIMIT_L, buf);
+  return write(id, HLS_MIN_ANGLE_LIMIT_L, buf);
 }
 
 Result CommunicationProtocol::lock_eprom(const uint8_t id) {
-  return write(id, SMS_STS_LOCK, std::experimental::make_array(uint8_t{1}));
+  return write(id, HLS_LOCK, std::experimental::make_array(uint8_t{1}));
 }
 
 Result CommunicationProtocol::unlock_eprom(const uint8_t id) {
-  return write(id, SMS_STS_LOCK, std::experimental::make_array(uint8_t{0}));
+  return write(id, HLS_LOCK, std::experimental::make_array(uint8_t{0}));
 }
 
 Result CommunicationProtocol::reg_write_action(const uint8_t id) {
   return write_buffer(id, 0, kEmptyArray, kInstructionRegAction).and_then([&] { return read_response(id); });
 }
 
-Expected<int> CommunicationProtocol::read_model_number(uint8_t id) { return read_word(id, SMS_STS_MODEL_L); }
+Expected<int> CommunicationProtocol::read_model_number(uint8_t id) { return read_word(id, HLS_MODEL_L); }
 }  // namespace feetech_hardware_interface

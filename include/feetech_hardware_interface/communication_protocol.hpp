@@ -1,6 +1,6 @@
 #pragma once
 
-#include <feetech_hardware_interface/SMS_STS.h>
+#include <feetech_hardware_interface/HLS.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <sys/types.h>
@@ -13,9 +13,9 @@ namespace feetech_hardware_interface {
 
 enum class OperationMode {
   kPosition,
-  kSpeed,
-  kOpenLoop,  // PWM
-  kStepServo,
+  kConstantSpeed,
+  kConstantCurrent,
+  kOpenLoop,
 };
 
 enum class Mode {
@@ -96,7 +96,7 @@ class CommunicationProtocol {
       to_sts(&buffer[i][3], &buffer[i][4], 0);  // Time
       to_sts(&buffer[i][5], &buffer[i][6], speed[i]);
     }
-    return sync_write(ids, SMS_STS_ACC, buffer);
+    return sync_write(ids, HLS_ACC, buffer);
   }
 
   Result reg_write_position(const uint8_t id, const int position, const int speed, const int acceleration) {
@@ -105,7 +105,7 @@ class CommunicationProtocol {
     to_sts(&buffer[1], &buffer[2], encode_signed_value(position));
     to_sts(&buffer[3], &buffer[4], 0);  // Time
     to_sts(&buffer[5], &buffer[6], encode_signed_value(speed));
-    return reg_write(id, SMS_STS_ACC, buffer);
+    return reg_write(id, HLS_ACC, buffer);
   }
 
   template <std::size_t N>
@@ -121,7 +121,7 @@ class CommunicationProtocol {
   Result set_maximum_angle_limit(uint8_t id, int angle);
   Result set_minimum_angle_limit(uint8_t id, int angle);
   Result set_mode(const uint8_t id, const OperationMode mode) {
-    return write(id, SMS_STS_MODE, std::experimental::make_array(static_cast<uint8_t>(mode)));
+    return write(id, HLS_MODE, std::experimental::make_array(static_cast<uint8_t>(mode)));
   }
 
   /// Asynchronous write execution command

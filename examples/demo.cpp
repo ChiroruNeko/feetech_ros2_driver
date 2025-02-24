@@ -47,10 +47,9 @@ void sync_read_position(CommunicationProtocol& communication_protocol) {
   std::vector<std::array<uint8_t, 2>> positions(num_servos, {0, 0});
 
   while (true) {
-    communication_protocol.sync_read(ids, SMS_STS_PRESENT_POSITION_L, &positions)
-        .or_else([&](const std::string& error) {
-          throw std::runtime_error(fmt::format("Failed to read position [ids={}]", ids, error));
-        });
+    communication_protocol.sync_read(ids, HLS_PRESENT_POSITION_L, &positions).or_else([&](const std::string& error) {
+      throw std::runtime_error(fmt::format("Failed to read position [ids={}]", ids, error));
+    });
     spdlog::info("Position: {}", positions | ranges::views::transform([](const auto& position) {
                                    return from_sts(WordBytes{.low = position[0], .high = position[1]});
                                  }) | ranges::views::transform(to_angle));

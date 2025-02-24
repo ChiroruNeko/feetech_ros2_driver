@@ -49,9 +49,8 @@ CallbackReturn FeetechHardwareInterface::on_init(const hardware_interface::Hardw
       return 0;
     }();
 
-    for (const auto& [parameter_name, address] : {std::pair{"p_cofficient", SMS_STS_P_COEF},
-                                                  {"d_cofficient", SMS_STS_D_COEF},
-                                                  {"i_cofficient", SMS_STS_I_COEF}}) {
+    for (const auto& [parameter_name, address] :
+         {std::pair{"p_cofficient", HLS_P_COEF}, {"d_cofficient", HLS_D_COEF}, {"i_cofficient", HLS_I_COEF}}) {
       if (const auto param_it = joint_params.find(parameter_name); param_it != joint_params.end()) {
         const auto result = communication_protocol_->write(
             joint_ids_[i], address, std::experimental::make_array(static_cast<uint8_t>(std::stoi(param_it->second))));
@@ -114,7 +113,7 @@ hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Tim
   // 4 = 2 bytes for position + 2 bytes for speed
   std::vector<std::array<uint8_t, 4>> data;
   data.reserve(joint_ids_.size());
-  if (auto result = communication_protocol_->sync_read(joint_ids_, SMS_STS_PRESENT_POSITION_L, &data); !result) {
+  if (auto result = communication_protocol_->sync_read(joint_ids_, HLS_PRESENT_POSITION_L, &data); !result) {
     spdlog::error("FeetechHardwareInterface::read -> {}", result.error());
     return hardware_interface::return_type::ERROR;
   }
