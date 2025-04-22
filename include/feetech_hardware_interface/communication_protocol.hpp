@@ -93,8 +93,8 @@ class CommunicationProtocol {
     for (size_t i = 0; i < ids.size(); ++i) {
       buffer[i][0] = acceleration[i];
       to_sts(&buffer[i][1], &buffer[i][2], encode_signed_value(position[i]));
-      to_sts(&buffer[i][3], &buffer[i][4], 0);  // Time
-      to_sts(&buffer[i][5], &buffer[i][6], speed[i]);
+      to_sts(&buffer[i][3], &buffer[i][4], 2000);  // Torque
+      to_sts(&buffer[i][5], &buffer[i][6], encode_signed_value(speed[i]));
     }
     return sync_write(ids, HLS_ACC, buffer);
   }

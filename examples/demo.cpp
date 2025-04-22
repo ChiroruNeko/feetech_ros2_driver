@@ -115,7 +115,7 @@ void write_position(CommunicationProtocol& communication_protocol) {
     const auto data = from_angle(desired_joint_position);
     spdlog::info("Setting position to {}°: {}", desired_joint_position, data);
 
-    if (!communication_protocol.write_position(id, data, 0, 0)) {
+    if (!communication_protocol.write_position(id, data, 128, 0)) {  // Acc is max when 0 is set
       spdlog::error("Failed to set position");
     }
 
