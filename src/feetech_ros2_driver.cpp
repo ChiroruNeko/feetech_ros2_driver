@@ -83,6 +83,8 @@ CallbackReturn FeetechHardwareInterface::on_init(const hardware_interface::Hardw
     return CallbackReturn::ERROR;
   }
 
+  communication_protocol_->set_mode(1, feetech_hardware_interface::OperationMode::kPosition);
+
   return CallbackReturn::SUCCESS;
 }
 
