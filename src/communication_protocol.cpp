@@ -85,7 +85,7 @@ Result CommunicationProtocol::write_position(const uint8_t id, int position, int
   std::array<uint8_t, 7> buffer{};
   buffer[0] = acceleration;
   to_sts(&buffer[1], &buffer[2], encode_signed_value(position));
-  to_sts(&buffer[3], &buffer[4], 0);  // Set positive value if you want to move.
+  to_sts(&buffer[3], &buffer[4], 2000);  // Set positive value if you want to move.
   to_sts(&buffer[5], &buffer[6], encode_signed_value(speed));
   return write(id, HLS_ACC, buffer);
 }
