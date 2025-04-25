@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
     set_id(communication_protocol, old_id, new_id);
     set_position_limit(communication_protocol, new_id, 1, 4095);
-    set_pid_gain(communication_protocol, new_id, 24, 24, 254);
+    set_pid_gain(communication_protocol, new_id, 32, 32, 0);
     write_initial_position(communication_protocol, new_id);
   }
 }
