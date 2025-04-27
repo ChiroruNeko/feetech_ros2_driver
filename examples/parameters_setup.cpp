@@ -7,6 +7,7 @@
 #include <range/v3/all.hpp>
 #include <tl_expected/expected.hpp>
 #include <vector>
+#include <thread>
 
 using namespace std::chrono_literals;
 using namespace feetech_hardware_interface;
