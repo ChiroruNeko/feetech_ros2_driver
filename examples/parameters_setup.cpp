@@ -5,9 +5,9 @@
 #include <feetech_hardware_interface/communication_protocol.hpp>
 #include <iostream>
 #include <range/v3/all.hpp>
+#include <thread>
 #include <tl_expected/expected.hpp>
 #include <vector>
-#include <thread>
 
 using namespace std::chrono_literals;
 using namespace feetech_hardware_interface;
