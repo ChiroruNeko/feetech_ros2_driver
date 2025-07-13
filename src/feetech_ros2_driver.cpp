@@ -68,21 +68,21 @@ CallbackReturn FeetechHardwareInterface::on_init(const hardware_interface::Hardw
                                         .and_then(feetech_hardware_interface::get_model_series);
                                   });
 
-  if (std::ranges::any_of(joint_model_series, [](const auto& series) { return !series.has_value(); })) {
-    spdlog::error("FeetechHardware::on_init [One of the joints has an error]. Input: {}",
-                  ranges::views::zip(joint_ids_, joint_model_series));
-    return CallbackReturn::ERROR;
-  }
+  // if (std::ranges::any_of(joint_model_series, [](const auto& series) { return !series.has_value(); })) {
+  //   spdlog::error("FeetechHardware::on_init [One of the joints has an error]. Input: {}",
+  //                 ranges::views::zip(joint_ids_, joint_model_series));
+  //   return CallbackReturn::ERROR;
+  // }
 
-  const auto js = joint_model_series | ranges::views::transform([](const auto& series) { return series.value(); });
+  // const auto js = joint_model_series | ranges::views::transform([](const auto& series) { return series.value(); });
 
   // TODO: Support other series
-  if (ranges::any_of(js, [](const auto& series) { return series != feetech_hardware_interface::ModelSeries::kSts; })) {
-    spdlog::error("FeetechHardware::on_init [Only STS series is supported]. Input (id, series): {}",
-                  ranges::views::zip(joint_ids_, js));
-    return CallbackReturn::ERROR;
-  }
-
+  // if (ranges::any_of(js, [](const auto& series) { return series != feetech_hardware_interface::ModelSeries::kSts; }))
+  // {
+  //   spdlog::error("FeetechHardware::on_init [Only STS series is supported]. Input (id, series): {}",
+  //                 ranges::views::zip(joint_ids_, js));
+  //   return CallbackReturn::ERROR;
+  // }
   communication_protocol_->set_mode(1, feetech_hardware_interface::OperationMode::kPosition);
 
   return CallbackReturn::SUCCESS;
