@@ -102,6 +102,7 @@ std::vector<hardware_interface::StateInterface> FeetechHardwareInterface::export
 std::vector<hardware_interface::CommandInterface> FeetechHardwareInterface::export_command_interfaces() {
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
+  command_interfaces.reserve(info_.joints.size());
   for (uint i = 0; i < info_.joints.size(); i++) {
     command_interfaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_positions_[i]);
   }
