@@ -75,10 +75,10 @@ class CommunicationProtocol {
 
   /// TODO: Should I create a struct??
   /// TOOD: Should I make speed/acceleration optional?
-  Result sync_write_position(const std::vector<uint8_t>& ids,
-                             const std::vector<int>& position,
-                             const std::vector<int>& speed,
-                             const std::vector<int>& acceleration) {
+  Result sync_write_motion_control(const std::vector<uint8_t>& ids,
+                                   const std::vector<int>& position,
+                                   const std::vector<int>& speed,
+                                   const std::vector<int>& acceleration) {
     if (ids.size() != position.size() || ids.size() != speed.size() || ids.size() != acceleration.size()) {
       return tl::make_unexpected(
           fmt::format("Sizes of IDs, position, speed, and acceleration must be the same - ids[{}], position[{}], "

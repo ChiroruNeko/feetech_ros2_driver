@@ -138,8 +138,8 @@ hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Ti
                            return feetech_hardware_interface::from_radians(position) + offset;
                          }) |
                          ranges::to_vector;
-  const auto write_result = communication_protocol_->sync_write_position(
-      joint_ids_, positions, std::vector(joint_ids_.size(), 2400), std::vector(joint_ids_.size(), 50));
+  const auto write_result = communication_protocol_->sync_write_motion_control(
+      joint_ids_, positions, std::vector(joint_ids_.size(), 100), std::vector(joint_ids_.size(), 0));
   if (!write_result) {
     spdlog::error("FeetechHardwareInterface::write -> {}", write_result.error());
     return hardware_interface::return_type::ERROR;

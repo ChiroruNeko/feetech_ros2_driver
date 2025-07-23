@@ -68,7 +68,7 @@ void read_position(CommunicationProtocol& communication_protocol) {
   }
 }
 
-void sync_write_position(CommunicationProtocol& communication_protocol) {
+void sync_write_motion_control(CommunicationProtocol& communication_protocol) {
   const auto num_servos = std::stoul(get_input("Enter number of servos: "));
   const auto ids = ranges::views::iota(1ul, num_servos + 1) | ranges::to<std::vector<uint8_t>>();
   std::vector<int> speeds(num_servos, 0);
@@ -79,7 +79,7 @@ void sync_write_position(CommunicationProtocol& communication_protocol) {
     std::vector<int> positions(num_servos, from_angle(desired_joint_position));
 
     spdlog::info("Setting positions to {}", positions);
-    communication_protocol.sync_write_position(ids, positions, speeds, accelerations)
+    communication_protocol.sync_write_motion_control(ids, positions, speeds, accelerations)
         .or_else([=](const std::string& error) {
           throw std::runtime_error(fmt::format("Failed to set position [ids={}]", ids, error));
         });
@@ -150,7 +150,7 @@ const std::unordered_map<std::string_view, void (*)(CommunicationProtocol&)> kEx
     {"read_speed", read_speed},
     {"print_models", print_models},
     {"reg_write_position", reg_write_position},
-    {"sync_write_position", sync_write_position},
+    {"sync_write_motion_control", sync_write_motion_control},
     {"sync_read_position", sync_read_position},
     // clang-format on
 };

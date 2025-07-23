@@ -17,7 +17,8 @@ struct ServoCommand {
   int acceleration;
 };
 
-void sync_write_position(CommunicationProtocol& communication_protocol, const std::vector<ServoCommand>& commands) {
+void sync_write_motion_control(CommunicationProtocol& communication_protocol,
+                               const std::vector<ServoCommand>& commands) {
   // Create separate vectors for ids, positions, speeds, and accelerations.
   std::vector<uint8_t> ids;
   std::vector<int> positions;
@@ -38,7 +39,7 @@ void sync_write_position(CommunicationProtocol& communication_protocol, const st
   }
 
   // Send the synchronous write command once.
-  communication_protocol.sync_write_position(ids, positions, speeds, accelerations)
+  communication_protocol.sync_write_motion_control(ids, positions, speeds, accelerations)
       .or_else([&](const std::string& error) {
         throw std::runtime_error(
             fmt::format("Failed to set position for ids [{}] with error: {}", fmt::join(ids, ", "), error));
@@ -62,10 +63,10 @@ int main(int argc, char** argv) {
   std::vector<ServoCommand> commands = {{1, 0, 100, 0}, {2, 0, 100, 0}};
   while (true) {
     commands = {{1, 0, 100, 0}, {2, 0, 100, 0}};
-    sync_write_position(communication_protocol, commands);
+    sync_write_motion_control(communication_protocol, commands);
     sleep(1);
     commands = {{1, 90, 100, 0}, {2, 90, 100, 0}};
-    sync_write_position(communication_protocol, commands);
+    sync_write_motion_control(communication_protocol, commands);
     sleep(1);
   }
 }
