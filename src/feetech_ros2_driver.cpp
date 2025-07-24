@@ -86,9 +86,14 @@ std::vector<hardware_interface::StateInterface> FeetechHardwareInterface::export
 std::vector<hardware_interface::CommandInterface> FeetechHardwareInterface::export_command_interfaces() {
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
-  command_interfaces.reserve(info_.joints.size());
+  hw_velocities_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
+  hw_accelerations_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
+  command_interfaces.reserve(info_.joints.size() * 3);
   for (uint i = 0; i < info_.joints.size(); i++) {
     command_interfaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_positions_[i]);
+    command_interfaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_velocities_[i]);
+    command_interfaces.emplace_back(
+        info_.joints[i].name, hardware_interface::HW_IF_ACCELERATION, &hw_accelerations_[i]);
   }
 
   return command_interfaces;
@@ -123,8 +128,13 @@ hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Ti
                            return feetech_hardware_interface::from_radians(position) + offset;
                          }) |
                          ranges::to_vector;
-  const auto write_result = communication_protocol_->sync_write_motion_control(
-      joint_ids_, positions, std::vector(joint_ids_.size(), 100), std::vector(joint_ids_.size(), 0));
+  const auto velocities =
+      hw_velocities_ | ranges::views::transform(feetech_hardware_interface::from_radians) | ranges::to_vector;
+  const auto accelerations =
+      hw_accelerations_ | ranges::views::transform(feetech_hardware_interface::from_radians) | ranges::to_vector;
+
+  const auto write_result =
+      communication_protocol_->sync_write_motion_control(joint_ids_, positions, velocities, accelerations);
   if (!write_result) {
     spdlog::error("FeetechHardwareInterface::write -> {}", write_result.error());
     return hardware_interface::return_type::ERROR;
@@ -137,6 +147,9 @@ CallbackReturn FeetechHardwareInterface::on_activate(const rclcpp_lifecycle::Sta
   read(rclcpp::Time{}, rclcpp::Duration::from_seconds(0));
   // Set the initial command to current joint positions
   hw_positions_ = state_hw_positions_;
+  // Initialize velocity and acceleration commands to zero
+  ranges::fill(hw_velocities_, 0.0);
+  ranges::fill(hw_accelerations_, 0.0);
   return CallbackReturn::SUCCESS;
 }
 

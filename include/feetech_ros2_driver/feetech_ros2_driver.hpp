@@ -32,6 +32,8 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
   std::unique_ptr<feetech_hardware_interface::CommunicationProtocol> communication_protocol_;
 
   std::vector<double> hw_positions_;
+  std::vector<double> hw_velocities_;
+  std::vector<double> hw_accelerations_;
   std::vector<double> state_hw_positions_;
   std::vector<double> state_hw_velocities_;
   std::vector<uint8_t> previous_hw_positions_;
