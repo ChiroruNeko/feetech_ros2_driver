@@ -73,8 +73,9 @@ inline static constexpr std::array<uint8_t, 0> kEmptyArray;
 // Then ~ on an int gives us a negative number (-255)
 template <std::size_t N>
 constexpr auto sum_bytes(const std::array<uint8_t, N>& data) noexcept {
-  return [&]<std::size_t... I>(std::index_sequence<I...>) { return static_cast<uint8_t>((data.at(I) + ...)); }
-  (std::make_index_sequence<N>{});
+  return [&]<std::size_t... I>(std::index_sequence<I...>) {
+    return static_cast<uint8_t>((data.at(I) + ...));
+  }(std::make_index_sequence<N>{});
 }
 
 enum class ModelSeries { kSmcl, kSmbl, kSts, kScs };
