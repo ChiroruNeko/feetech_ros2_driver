@@ -1,6 +1,6 @@
 #include <fmt/ranges.h>
 
-#include <algorithm>
+#include <cstdint>
 #include <feetech_hardware_interface/common.hpp>
 #include <feetech_hardware_interface/communication_protocol.hpp>
 #include <feetech_ros2_driver/feetech_ros2_driver.hpp>
@@ -10,7 +10,6 @@
 #include <range/v3/view/all.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace feetech_ros2_driver {
@@ -110,12 +109,16 @@ hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Tim
   }
   ranges::for_each(data | ranges::views::enumerate, [&](const auto& values) {
     const auto& [index, readings] = values;
+    // Get position
     state_hw_positions_[index] = feetech_hardware_interface::to_radians(
         feetech_hardware_interface::from_sts(
             feetech_hardware_interface::WordBytes{.low = readings[0], .high = readings[1]}) -
         joint_offsets_[index]);
-    state_hw_velocities_[index] = feetech_hardware_interface::to_radians(feetech_hardware_interface::from_sts(
-        feetech_hardware_interface::WordBytes{.low = readings[2], .high = readings[3]}));
+    // Get velocity
+    const uint16_t raw_velocity = feetech_hardware_interface::from_sts(
+        feetech_hardware_interface::WordBytes{.low = readings[2], .high = readings[3]});
+    const int16_t decoded_velocity = feetech_hardware_interface::decode_feetech_velocity(raw_velocity);
+    state_hw_velocities_[index] = feetech_hardware_interface::to_radians_per_second(decoded_velocity);
   });
   return hardware_interface::return_type::OK;
 }
@@ -128,10 +131,17 @@ hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Ti
                            return feetech_hardware_interface::from_radians(position) + offset;
                          }) |
                          ranges::to_vector;
-  const auto velocities =
-      hw_velocities_ | ranges::views::transform(feetech_hardware_interface::from_radians) | ranges::to_vector;
-  const auto accelerations =
-      hw_accelerations_ | ranges::views::transform(feetech_hardware_interface::from_radians) | ranges::to_vector;
+
+  const auto velocities = hw_velocities_ | ranges::views::transform([](const double radians_per_second) {
+                            const int raw_velocity =
+                                feetech_hardware_interface::from_radians_per_second(radians_per_second);
+                            return static_cast<int>(feetech_hardware_interface::encode_feetech_velocity(raw_velocity));
+                          }) |
+                          ranges::to_vector;
+
+  const auto accelerations = hw_accelerations_ |
+                             ranges::views::transform(feetech_hardware_interface::from_radians_per_second_squared) |
+                             ranges::to_vector;
 
   const auto write_result =
       communication_protocol_->sync_write_motion_control(joint_ids_, positions, velocities, accelerations);

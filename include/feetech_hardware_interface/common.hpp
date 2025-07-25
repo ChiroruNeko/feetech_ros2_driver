@@ -19,6 +19,8 @@ using Result = Expected<void>;
 
 inline static constexpr double kStsResolution = 4096.;
 inline static constexpr std::size_t kMaxServoId = 253;
+inline static constexpr double kHlsVelocityResolution = 0.732;    // RPM, max 75 RPM
+inline static constexpr double kHlsAccelerationResolution = 8.7;  // deg/s^2
 // STS models
 inline static constexpr std::size_t kHighByteIndex = 1;
 inline static constexpr std::size_t kLowByteIndex = 0;
@@ -38,6 +40,18 @@ inline auto from_radians(const double angle) {
 inline auto encode_signed_value(int position) {
   return position < 0 ? (-position | (1 << 15)) :  // Set MSB for negative
              position;                             // Keep positive as is
+}
+
+inline auto to_radians_per_second(const int data) { return (data * kHlsVelocityResolution) * M_PI / 30.0; }
+
+inline auto from_radians_per_second(const double radians_per_second) {
+  return static_cast<int>(radians_per_second * 30.0 / M_PI / kHlsVelocityResolution);
+}
+
+inline auto to_radians_per_second_squared(const int data) { return (data * kHlsAccelerationResolution) * M_PI / 180.0; }
+
+inline auto from_radians_per_second_squared(const double radians_per_second_squared) {
+  return static_cast<int>(radians_per_second_squared * 180.0 / M_PI / kHlsAccelerationResolution);
 }
 
 struct WordBytes {
@@ -135,6 +149,20 @@ inline Expected<ModelSeries> get_model_series(const std::string_view model_name)
     return ModelSeries::kSmcl;
   }
   return tl::make_unexpected(fmt::format("Unknown model_name [{}]", model_name));
+}
+
+// Feetech servo velocity data uses sign-magnitude format (BIT15=direction, BIT0-14=magnitude)
+inline auto decode_feetech_velocity(const uint16_t raw_data) {
+  const bool is_negative = (raw_data & 0x8000) != 0;  // Check BIT15
+  const int16_t magnitude = raw_data & 0x7FFF;        // Extract BIT0-14
+  return is_negative ? -magnitude : magnitude;
+}
+
+inline auto encode_feetech_velocity(const int16_t signed_value) {
+  if (signed_value < 0) {
+    return static_cast<uint16_t>((-signed_value) | 0x8000);  // Set BIT15 for negative
+  }
+  return static_cast<uint16_t>(signed_value);
 }
 
 }  // namespace feetech_hardware_interface
