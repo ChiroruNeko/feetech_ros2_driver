@@ -128,7 +128,7 @@ hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Ti
   const auto positions = ranges::views::zip(hw_positions_, joint_offsets_) |
                          ranges::views::transform([&](const auto tuple) {
                            auto [position, offset] = tuple;
-                           return feetech_hardware_interface::from_radians(position) + offset;
+                           return feetech_hardware_interface::from_radians(position + offset);
                          }) |
                          ranges::to_vector;
 
