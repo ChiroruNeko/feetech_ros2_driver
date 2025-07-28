@@ -110,10 +110,9 @@ hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Tim
   ranges::for_each(data | ranges::views::enumerate, [&](const auto& values) {
     const auto& [index, readings] = values;
     // Get position
-    state_hw_positions_[index] = feetech_hardware_interface::to_radians(
-        feetech_hardware_interface::from_sts(
-            feetech_hardware_interface::WordBytes{.low = readings[0], .high = readings[1]}) -
-        joint_offsets_[index]);
+    state_hw_positions_[index] = feetech_hardware_interface::to_radians(feetech_hardware_interface::from_sts(
+                                     feetech_hardware_interface::WordBytes{.low = readings[0], .high = readings[1]})) -
+                                 joint_offsets_[index];
     // Get velocity
     const uint16_t raw_velocity = feetech_hardware_interface::from_sts(
         feetech_hardware_interface::WordBytes{.low = readings[2], .high = readings[3]});
