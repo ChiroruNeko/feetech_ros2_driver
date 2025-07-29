@@ -39,6 +39,6 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
   std::vector<uint8_t> previous_hw_positions_;
 
   std::vector<uint8_t> joint_ids_;
-  std::vector<int> joint_offsets_;
+  std::vector<double> joint_offsets_;  // rad
 };
 }  // namespace feetech_ros2_driver

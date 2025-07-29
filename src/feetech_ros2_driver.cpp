@@ -42,10 +42,10 @@ CallbackReturn FeetechHardwareInterface::on_init(const hardware_interface::Hardw
     joint_ids_[i] = std::stoi(joint_params.at("id"));
     joint_offsets_[i] = [&] {
       if (const auto offset_it = joint_params.find("offset"); offset_it != joint_params.end()) {
-        return std::stoi(offset_it->second);
+        return std::stod(offset_it->second);
       }
       spdlog::info("Joint '{}' does not specify an offset parameter - Setting it to 0", info_.joints[i].name);
-      return 0;
+      return 0.0;
     }();
 
     for (const auto& [parameter_name, address] :
