@@ -1,4 +1,5 @@
 #include <fmt/ranges.h>
+#include <spdlog/spdlog.h>
 
 #include <cstdint>
 #include <feetech_hardware_interface/common.hpp>
@@ -101,24 +102,25 @@ std::vector<hardware_interface::CommandInterface> FeetechHardwareInterface::expo
 hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Time& /* time */,
                                                                const rclcpp::Duration& /* period */) {
   // 4 = 2 bytes for position + 2 bytes for speed
-  std::vector<std::array<uint8_t, 4>> data;
-  data.reserve(joint_ids_.size());
-  if (auto result = communication_protocol_->sync_read(joint_ids_, HLS_PRESENT_POSITION_L, &data); !result) {
-    spdlog::error("FeetechHardwareInterface::read -> {}", result.error());
-    return hardware_interface::return_type::ERROR;
-  }
-  ranges::for_each(data | ranges::views::enumerate, [&](const auto& values) {
-    const auto& [index, readings] = values;
-    // Get position
-    state_hw_positions_[index] = feetech_hardware_interface::to_radians(feetech_hardware_interface::from_sts(
-                                     feetech_hardware_interface::WordBytes{.low = readings[0], .high = readings[1]})) -
-                                 joint_offsets_[index];
-    // Get velocity
-    const uint16_t raw_velocity = feetech_hardware_interface::from_sts(
-        feetech_hardware_interface::WordBytes{.low = readings[2], .high = readings[3]});
-    const int16_t decoded_velocity = feetech_hardware_interface::decode_feetech_velocity(raw_velocity);
-    state_hw_velocities_[index] = feetech_hardware_interface::to_radians_per_second(decoded_velocity);
-  });
+  // std::vector<std::array<uint8_t, 4>> data;
+  // data.reserve(joint_ids_.size());
+  // if (auto result = communication_protocol_->sync_read(joint_ids_, HLS_PRESENT_POSITION_L, &data); !result) {
+  //   spdlog::error("FeetechHardwareInterface::read -> {}", result.error());
+  //   // return hardware_interface::return_type::ERROR;
+  // }
+  // ranges::for_each(data | ranges::views::enumerate, [&](const auto& values) {
+  //   const auto& [index, readings] = values;
+  //   // Get position
+  //   state_hw_positions_[index] = feetech_hardware_interface::to_radians(feetech_hardware_interface::from_sts(
+  //                                    feetech_hardware_interface::WordBytes{.low = readings[0], .high = readings[1]}))
+  //                                    -
+  //                                joint_offsets_[index];
+  //   // Get velocity
+  //   const uint16_t raw_velocity = feetech_hardware_interface::from_sts(
+  //       feetech_hardware_interface::WordBytes{.low = readings[2], .high = readings[3]});
+  //   const int16_t decoded_velocity = feetech_hardware_interface::decode_feetech_velocity(raw_velocity);
+  //   state_hw_velocities_[index] = feetech_hardware_interface::to_radians_per_second(decoded_velocity);
+  // });
   return hardware_interface::return_type::OK;
 }
 
@@ -148,6 +150,20 @@ hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Ti
     spdlog::error("FeetechHardwareInterface::write -> {}", write_result.error());
     return hardware_interface::return_type::ERROR;
   }
+  // TODO(ChiroruNeko): Fix to use read() to update state_hw_positions_ and state_hw_velocities_
+  state_hw_positions_ = hw_positions_;
+  state_hw_velocities_ = hw_velocities_;
+
+  // Debug logging: pos+offset
+  // if (spdlog::should_log(spdlog::level::info)) {
+  //   for (size_t i = 0; i < info_.joints.size(); ++i) {
+  //     spdlog::info("Joint: {}, Position: {:.2f} rad, Offset: {:.2f} rad",
+  //                  info_.joints[i].name,
+  //                  hw_positions_[i],
+  //                  joint_offsets_[i]);
+  //   }
+  // }
+
   return hardware_interface::return_type::OK;
 }
 
