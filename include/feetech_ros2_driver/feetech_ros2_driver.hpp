@@ -6,8 +6,11 @@
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <map>
+#include <mutex>
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <rclcpp_lifecycle/state.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <vector>
 
 namespace feetech_ros2_driver {
@@ -29,6 +32,9 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
 
  private:
+  void torqueEnableCallback(const std_msgs::msg::Bool::SharedPtr msg);
+  hardware_interface::return_type setTorqueEnable(bool enable);
+
   std::unique_ptr<feetech_hardware_interface::CommunicationProtocol> communication_protocol_;
 
   std::vector<double> hw_positions_;
@@ -40,5 +46,11 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
 
   std::vector<uint8_t> joint_ids_;
   std::vector<double> joint_offsets_;  // rad
+
+  // Torque control
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr torque_enable_sub_;
+  bool torque_enabled_;
+  std::mutex communication_mutex_;  // Protect serial communication
 };
 }  // namespace feetech_ros2_driver

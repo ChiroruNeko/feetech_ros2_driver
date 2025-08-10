@@ -19,6 +19,16 @@ CallbackReturn FeetechHardwareInterface::on_init(const hardware_interface::Hardw
     return CallbackReturn::ERROR;
   }
 
+  // Create ROS node for subscription
+  node_ = rclcpp::Node::make_shared("feetech_hardware_interface_node");
+
+  // Initialize torque state
+  torque_enabled_ = true;
+
+  // Create torque enable subscription
+  torque_enable_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+      "torque_enable", 10, std::bind(&FeetechHardwareInterface::torqueEnableCallback, this, std::placeholders::_1));
+
   const auto usb_port_it = info_.hardware_parameters.find("usb_port");
   if (usb_port_it == info_.hardware_parameters.end()) {
     spdlog::error(
@@ -101,6 +111,9 @@ std::vector<hardware_interface::CommandInterface> FeetechHardwareInterface::expo
 
 hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Time& /* time */,
                                                                const rclcpp::Duration& /* period */) {
+  // Process ROS callbacks for torque enable subscription
+  rclcpp::spin_some(node_);
+
   // 4 = 2 bytes for position + 2 bytes for speed
   // std::vector<std::array<uint8_t, 4>> data;
   // data.reserve(joint_ids_.size());
@@ -126,6 +139,13 @@ hardware_interface::return_type FeetechHardwareInterface::read(const rclcpp::Tim
 
 hardware_interface::return_type FeetechHardwareInterface::write(const rclcpp::Time& /* time */,
                                                                 const rclcpp::Duration& /* period */) {
+  std::lock_guard<std::mutex> lock(communication_mutex_);  // Protect serial communication
+
+  // Skip writing if torque is disabled
+  if (!torque_enabled_) {
+    return hardware_interface::return_type::OK;
+  }
+
   const auto positions = ranges::views::zip(hw_positions_, joint_offsets_) |
                          ranges::views::transform([&](const auto tuple) {
                            auto [position, offset] = tuple;
@@ -178,6 +198,32 @@ CallbackReturn FeetechHardwareInterface::on_activate(const rclcpp_lifecycle::Sta
   return CallbackReturn::SUCCESS;
 }
 
+void FeetechHardwareInterface::torqueEnableCallback(const std_msgs::msg::Bool::SharedPtr msg) {
+  spdlog::info("Torque enable callback: {}", msg->data ? "true" : "false");
+  setTorqueEnable(msg->data);
+}
+
+hardware_interface::return_type FeetechHardwareInterface::setTorqueEnable(bool enable) {
+  std::lock_guard<std::mutex> lock(communication_mutex_);  // Protect serial communication
+
+  torque_enabled_ = enable;
+
+  // Send torque enable/disable command to all servos
+  for (const auto& joint_id : joint_ids_) {
+    const uint8_t torque_value = enable ? 1 : 0;
+    const auto result =
+        communication_protocol_->write(joint_id, HLS_TORQUE_ENABLE, std::experimental::make_array(torque_value));
+
+    // if (!result) {
+    //   spdlog::error("FeetechHardwareInterface::setTorqueEnable -> Failed to set torque for servo {}: {}",
+    //                joint_id, result.error());
+    //   return hardware_interface::return_type::ERROR;
+    // }
+  }
+
+  spdlog::info("Torque {} for all servos", enable ? "enabled" : "disabled");
+  return hardware_interface::return_type::OK;
+}
 }  // namespace feetech_ros2_driver
 
 #include "pluginlib/class_list_macros.hpp"
