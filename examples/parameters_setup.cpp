@@ -82,15 +82,15 @@ void write_initial_position(CommunicationProtocol& communication_protocol, uint8
       spdlog::error("Failed to set position");
     }
 
-    double position = -1.;
-    while (std::abs(position - target_angle) > 1) {
-      position =
-          to_angle(communication_protocol.read_position(id)
-                       .or_else([](const std::string& error) -> Expected<int> { throw std::runtime_error(error); })
-                       .value());
-      spdlog::info("Current position: {:.3f}°", position);
-      std::this_thread::sleep_for(sleep_time);
-    }
+    // double position = -1.;
+    // while (std::abs(position - target_angle) > 1) {
+    //   position =
+    //       to_angle(communication_protocol.read_position(id)
+    //                    .or_else([](const std::string& error) -> Expected<int> { throw std::runtime_error(error); })
+    //                    .value());
+    //   spdlog::info("Current position: {:.3f}°", position);
+    //   std::this_thread::sleep_for(sleep_time);
+    // }
     break;
   }
 }
@@ -116,8 +116,12 @@ int main(int argc, char** argv) {
     const auto new_id = std::stoi(get_input("Enter new ID: "));
 
     set_id(communication_protocol, old_id, new_id);
+    std::this_thread::sleep_for(100ms);
     set_position_limit(communication_protocol, new_id, 1, 4095);
+    std::this_thread::sleep_for(100ms);
     set_pid_gain(communication_protocol, new_id, 32, 32, 0);
+    std::this_thread::sleep_for(100ms);
     write_initial_position(communication_protocol, new_id);
+    std::this_thread::sleep_for(100ms);
   }
 }
