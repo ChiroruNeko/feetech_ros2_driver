@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <feetech_hardware_interface/communication_protocol.hpp>
 #include <feetech_hardware_interface/serial_port.hpp>
 #include <hardware_interface/handle.hpp>
@@ -31,6 +33,10 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
 
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
 
+  CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
+
+  CallbackReturn on_cleanup(const rclcpp_lifecycle::State& previous_state) override;
+
  private:
   void torqueEnableCallback(const std_msgs::msg::Bool::SharedPtr msg);
   hardware_interface::return_type setTorqueEnable(bool enable);
@@ -52,5 +58,17 @@ class FeetechHardwareInterface : public hardware_interface::SystemInterface {
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr torque_enable_sub_;
   bool torque_enabled_;
   std::mutex communication_mutex_;  // Protect serial communication
+
+  // Connection management
+  bool recoverSerialPort();
+  bool initializeSerialPort();
+  std::string usb_port_;                    // Store USB port path for reconnection
+  std::atomic<bool> is_connected_{false};   // Track connection status
+  std::atomic<bool> is_recovering_{false};  // Prevent multiple recovery attempts
+  std::chrono::steady_clock::time_point last_recovery_attempt_;
+  static constexpr std::chrono::milliseconds RECOVERY_RETRY_DELAY{1000};  // 1 second between recovery attempts
+  static constexpr int MAX_RECOVERY_ATTEMPTS = 3;  // Maximum number of consecutive recovery attempts
+  int consecutive_errors_ = 0;                     // Track consecutive errors
+  static constexpr int ERROR_THRESHOLD = 5;        // Number of errors before attempting recovery
 };
 }  // namespace feetech_ros2_driver

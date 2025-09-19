@@ -27,6 +27,7 @@ enum class Mode {
 class CommunicationProtocol {
  public:
   explicit CommunicationProtocol(std::unique_ptr<SerialPort> /*serial_port*/);
+  ~CommunicationProtocol();
 
   Result ping(int id);
 
@@ -231,6 +232,23 @@ class CommunicationProtocol {
   template <std::size_t N>
   Result write(const uint8_t id, const uint8_t memory_address, const std::array<uint8_t, N>& parameters) {
     return write_buffer(id, memory_address, parameters, kInstructionWrite).and_then([&] { return read_response(id); });
+  }
+
+  // Safely reset the serial port connection to handle reconnection
+  void safeReset() {
+    try {
+      if (serial_port_) {
+        // Use our safe cleanup method first
+        serial_port_->safeCleanup();
+
+        // Set to nullptr without calling any additional methods
+        serial_port_ = nullptr;
+      }
+    } catch (...) {
+      spdlog::warn("Exception caught in CommunicationProtocol::safeReset");
+      // Force to nullptr regardless of any errors
+      serial_port_ = nullptr;
+    }
   }
 
  private:

@@ -11,6 +11,18 @@ namespace feetech_hardware_interface {
 CommunicationProtocol::CommunicationProtocol(std::unique_ptr<SerialPort> serial_port)
     : serial_port_(std::move(serial_port)) {}
 
+CommunicationProtocol::~CommunicationProtocol() {
+  try {
+    // Use safeReset which will handle cleanup properly
+    safeReset();
+  } catch (...) {
+    // Just log if anything goes wrong, but don't let exceptions propagate
+    spdlog::warn("Exception caught during CommunicationProtocol destruction");
+    // Force to nullptr as a last resort
+    serial_port_ = nullptr;
+  }
+}
+
 Expected<int> CommunicationProtocol::read_word(const uint8_t id, const uint8_t memory_address) {
   std::array<uint8_t, 2> buffer{};
   return read(id, memory_address, &buffer).and_then([&]() -> Expected<int> {

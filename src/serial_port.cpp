@@ -77,9 +77,21 @@ Expected<LibSerial::BaudRate> to_baudrate(const std::size_t baud) noexcept {
   return tl::make_unexpected(fmt::format("Invalid baud rate: [{}]", baud));
 }
 
-SerialPort::SerialPort(const std::string& dev) : dev_(dev) { spdlog::info("Connecting to port: {}", dev); }
+SerialPort::SerialPort(const std::string& dev) : dev_(dev) {
+  spdlog::info("Connecting to port: {}", dev);
+  // We'll create the port object when we need it
+  port_ = nullptr;
+}
 
-SerialPort::~SerialPort() { close(); }
+SerialPort::~SerialPort() {
+  spdlog::debug("SerialPort for {} being destroyed", dev_);
+
+  // Mark as disconnected first
+  is_port_connected_ = false;
+
+  // Use safeCleanup to properly clean up resources
+  safeCleanup();
+}
 
 Result SerialPort::configure(const LibSerial::BaudRate baud_rate) {
   if (auto result = open(); !result) {
@@ -87,7 +99,11 @@ Result SerialPort::configure(const LibSerial::BaudRate baud_rate) {
   }
 
   try {
-    port_.SetBaudRate(baud_rate);
+    if (port_ != nullptr) {
+      port_->SetBaudRate(baud_rate);
+    } else {
+      return tl::make_unexpected("Serial port object is not initialized");
+    }
   } catch (const std::runtime_error& e) {
     return tl::make_unexpected(fmt::format("Configuring the serial port failed: [{}]", e.what()));
   }
@@ -96,60 +112,90 @@ Result SerialPort::configure(const LibSerial::BaudRate baud_rate) {
 
 Result SerialPort::open() {
   try {
-    if (!port_.IsOpen()) {
-      port_.Open(dev_);
+    // Create a new port if needed
+    if (port_ == nullptr) {
+      port_ = new LibSerial::SerialPort();
     }
-  } catch (const LibSerial::OpenFailed& e) {
-    return tl::make_unexpected(fmt::format("Open [{}]: {}", dev_.c_str(), e.what()));
+
+    if (!port_->IsOpen()) {
+      port_->Open(dev_);
+      is_port_connected_ = true;
+    }
+  } catch (const std::exception& e) {
+    port_ = nullptr;
+    is_port_connected_ = false;
+
+    const char* error_type = dynamic_cast<const LibSerial::OpenFailed*>(&e) ? "Open failed" : "Unexpected error";
+    return tl::make_unexpected(fmt::format("Open [{}]: {} - {}", dev_.c_str(), error_type, e.what()));
   }
 
   return {};
 }
 
 Result SerialPort::close() {
+  // Mark port as disconnected
+  is_port_connected_ = false;
+
+  if (port_ == nullptr) {
+    // Port doesn't exist, nothing to do
+    return {};
+  }
+
+  if (!port_->IsOpen()) {
+    // Port is already closed, nothing to do
+    return {};
+  }
+
   try {
-    port_.Close();
+    port_->Close();
   } catch (const LibSerial::AlreadyOpen& e) {
-    return tl::make_unexpected(fmt::format("close [{}]: {}", dev_.c_str(), e.what()));
+    spdlog::warn("close [{}]: {}", dev_.c_str(), e.what());
+    // Don't return an error - port might actually be disconnected
   } catch (const std::runtime_error& e) {
-    return tl::make_unexpected(fmt::format("close [{}]: {}", dev_.c_str(), e.what()));
+    spdlog::warn("close [{}]: {}", dev_.c_str(), e.what());
+    // Don't return an error - port might actually be disconnected
   }
   return {};
 }
 
 Result SerialPort::check_port() const noexcept {
-  if (!port_.IsOpen()) {
+  if (port_ == nullptr || !port_->IsOpen()) {
+    if (!is_port_connected_) {
+      // Port was previously marked as disconnected
+      // The const_cast is needed because check_port is const but we need to modify state
+      auto* self = const_cast<SerialPort*>(this);
+      return self->try_reconnect().and_then([]() -> Result { return {}; });
+    }
     return tl::make_unexpected(fmt::format("Port [{}] is not open", dev_));
   }
 
   return {};
 }
 
-Result SerialPort::flashInputBuffer() noexcept {
+Result SerialPort::flushBuffer(bool isInput) noexcept {
   if (auto result = check_port(); !result) {
     return result;
   }
 
   try {
-    port_.FlushInputBuffer();
+    if (port_ != nullptr) {
+      if (isInput) {
+        port_->FlushInputBuffer();
+      } else {
+        port_->FlushOutputBuffer();
+      }
+    } else {
+      return tl::make_unexpected("Serial port object is not initialized");
+    }
   } catch (const std::runtime_error& e) {
+    is_port_connected_ = false;
     return tl::make_unexpected(e.what());
   }
 
   return {};
 }
 
-Result SerialPort::flashOutputBuffer() noexcept {
-  if (auto result = check_port(); !result) {
-    return result;
-  }
+Result SerialPort::flashInputBuffer() noexcept { return flushBuffer(true); }
 
-  try {
-    port_.FlushOutputBuffer();
-  } catch (const std::runtime_error& e) {
-    return tl::make_unexpected(e.what());
-  }
-
-  return {};
-}
+Result SerialPort::flashOutputBuffer() noexcept { return flushBuffer(false); }
 }  // namespace feetech_hardware_interface
