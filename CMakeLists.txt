@@ -74,6 +74,10 @@ add_executable(
   parameters_setup
   examples/parameters_setup.cpp
 )
+add_executable(
+  read_pos_demo
+  examples/read_pos_demo.cpp
+)
 target_link_libraries(demo
   serial_port
   communication_protocol
@@ -83,6 +87,10 @@ target_link_libraries(multiple_servo_demo
   communication_protocol
 )
 target_link_libraries(parameters_setup
+  serial_port
+  communication_protocol
+)
+target_link_libraries(read_pos_demo
   serial_port
   communication_protocol
 )
@@ -119,7 +127,7 @@ install(
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(
-  TARGETS demo multiple_servo_demo parameters_setup
+  TARGETS demo multiple_servo_demo parameters_setup read_pos_demo
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(
