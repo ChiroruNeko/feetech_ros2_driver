@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   write_buf[1] = 0xFF;
 
   auto next_time = std::chrono::steady_clock::now();
-  const auto period = std::chrono::microseconds(250);  // 1000Hz
+  const auto period = std::chrono::microseconds(250);  // 4kHz
 
   while (true) {
     next_time += period;
